@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SF Seafood Inventory</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div>
+        <h1>SF Seafood Inventory</h1>
+        <p class="subtitle">Internal inventory and sales management</p>
+      </div>
+      <div id="userMenu" class="user-menu hidden">
+        <span id="userRole"></span>
+        <button id="logoutButton" class="button button-secondary">Logout</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="loginSection" class="card auth-card">
+        <h2>Secure login</h2>
+        <form id="loginForm" class="form-grid">
+          <label>
+            Email
+            <input type="email" name="email" required placeholder="owner@sfseafood.local" />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" required placeholder="Enter your password" />
+          </label>
+          <button type="submit" class="button button-primary">Sign In</button>
+          <p class="small-note">Owner: owner@sfseafood.local / Owner123!<br />Operator: operator@sfseafood.local / Operator123!</p>
+          <div id="loginError" class="form-error hidden"></div>
+        </form>
+      </section>
+
+      <section id="appSection" class="app-shell hidden">
+        <aside class="side-nav">
+          <button class="nav-button active" data-section="dashboard">Dashboard</button>
+          <button class="nav-button" data-section="products">Products</button>
+          <button class="nav-button" data-section="customers">Customers</button>
+          <button class="nav-button" data-section="sales">Sales</button>
+          <button class="nav-button" data-section="stockIn">Stock In</button>
+          <button class="nav-button" data-section="stockOut">Stock Out</button>
+          <button class="nav-button" data-section="movements">Stock History</button>
+          <button class="nav-button owner-only" data-section="reports">Reports</button>
+        </aside>
+
+        <section class="content-area">
+          <div id="dashboardSection" class="content-panel">
+            <h2>Dashboard</h2>
+            <div class="card-grid" id="dashboardCards"></div>
+            <div class="card">
+              <h3>Low stock products</h3>
+              <div id="lowStockContainer"></div>
+            </div>
+          </div>
+
+          <div id="productsSection" class="content-panel hidden">
+            <div class="section-header">
+              <h2>Products</h2>
+              <div class="filter-row">
+                <input id="productSearch" type="search" placeholder="Search products" />
+                <select id="productActiveFilter">
+                  <option value="">All status</option>
+                  <option value="1">Active</option>
+                  <option value="0">Inactive</option>
+                </select>
+              </div>
+            </div>
+            <div class="card">
+              <div id="productFormContainer"></div>
+            </div>
+            <div class="card table-card">
+              <table>
+                <thead>
+                  <tr><th>SKU</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Min</th><th>Status</th><th class="owner-only">Actions</th></tr>
+                </thead>
+                <tbody id="productTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="customersSection" class="content-panel hidden">
+            <div class="section-header">
+              <h2>Customers</h2>
+              <input id="customerSearch" type="search" placeholder="Search customers" />
+            </div>
+            <div class="card">
+              <div id="customerFormContainer"></div>
+            </div>
+            <div class="card table-card">
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Phone</th><th>Address</th><th>Type</th><th class="owner-only">Actions</th></tr>
+                </thead>
+                <tbody id="customerTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="salesSection" class="content-panel hidden">
+            <div class="section-header">
+              <h2>Sales</h2>
+              <div class="filter-row">
+                <input id="salesSearch" type="search" placeholder="Search sales" />
+                <input id="salesFilterFrom" type="date" />
+                <input id="salesFilterTo" type="date" />
+              </div>
+            </div>
+            <div class="card">
+              <form id="saleForm" class="form-grid">
+                <label>
+                  Date
+                  <input type="date" name="transaction_date" id="saleDate" required />
+                </label>
+                <label>
+                  Customer
+                  <select name="customer_id" id="saleCustomer" required></select>
+                </label>
+                <label>
+                  Product
+                  <select name="product_id" id="saleProduct" required></select>
+                </label>
+                <label>
+                  Quantity
+                  <input type="number" name="quantity" id="saleQuantity" min="1" required />
+                </label>
+                <label>
+                  Unit price
+                  <input type="number" name="unit_price" id="saleUnitPrice" step="0.01" min="0" required />
+                </label>
+                <label>
+                  Status
+                  <select name="status" id="saleStatus">
+                    <option>Pending</option>
+                    <option>Delivered</option>
+                    <option>Completed</option>
+                  </select>
+                </label>
+                <div class="form-actions">
+                  <button type="submit" class="button button-primary">Create Sale</button>
+                  <div id="saleMessage" class="form-note"></div>
+                </div>
+              </form>
+            </div>
+            <div class="card table-card">
+              <table>
+                <thead>
+                  <tr><th>Date</th><th>Customer</th><th>Product</th><th>Quantity</th><th>Total</th><th>Status</th></tr>
+                </thead>
+                <tbody id="salesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="stockInSection" class="content-panel hidden">
+            <h2>Stock In</h2>
+            <div class="card">
+              <form id="stockInForm" class="form-grid">
+                <label>
+                  Date
+                  <input type="date" name="date" id="stockInDate" required />
+                </label>
+                <label>
+                  Product
+                  <select name="product_id" id="stockInProduct" required></select>
+                </label>
+                <label>
+                  Quantity
+                  <input type="number" name="quantity" min="1" required />
+                </label>
+                <label>
+                  Notes
+                  <input type="text" name="notes" placeholder="Receiving notes" />
+                </label>
+                <div class="form-actions">
+                  <button type="submit" class="button button-primary">Record Stock In</button>
+                  <div id="stockInMessage" class="form-note"></div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div id="stockOutSection" class="content-panel hidden">
+            <h2>Stock Out</h2>
+            <div class="card">
+              <form id="stockOutForm" class="form-grid">
+                <label>
+                  Date
+                  <input type="date" name="date" id="stockOutDate" required />
+                </label>
+                <label>
+                  Product
+                  <select name="product_id" id="stockOutProduct" required></select>
+                </label>
+                <label>
+                  Quantity
+                  <input type="number" name="quantity" min="1" required />
+                </label>
+                <label>
+                  Notes
+                  <input type="text" name="notes" placeholder="Usage notes" />
+                </label>
+                <div class="form-actions">
+                  <button type="submit" class="button button-primary">Record Stock Out</button>
+                  <div id="stockOutMessage" class="form-note"></div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div id="movementsSection" class="content-panel hidden">
+            <h2>Stock Movement History</h2>
+            <div class="card filter-card">
+              <div class="filter-row">
+                <input id="movementSearch" type="search" placeholder="Search history" />
+                <select id="movementTypeFilter">
+                  <option value="">All types</option>
+                  <option value="Stock In">Stock In</option>
+                  <option value="Stock Out">Stock Out</option>
+                  <option value="Sale">Sale</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <input id="movementStart" type="date" />
+                <input id="movementEnd" type="date" />
+              </div>
+            </div>
+            <div class="card table-card">
+              <table>
+                <thead>
+                  <tr><th>Date</th><th>Product</th><th>Type</th><th>Quantity</th><th>Reference</th><th>Notes</th></tr>
+                </thead>
+                <tbody id="movementTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="reportsSection" class="content-panel hidden owner-only">
+            <h2>Reports</h2>
+            <div class="card-grid" id="reportCards"></div>
+            <div class="card table-card">
+              <h3>Best selling products</h3>
+              <table>
+                <thead><tr><th>Product</th><th>Sold</th><th>Revenue</th></tr></thead>
+                <tbody id="bestProductsBody"></tbody>
+              </table>
+            </div>
+            <div class="card table-card">
+              <h3>Top customers</h3>
+              <table>
+                <thead><tr><th>Customer</th><th>Type</th><th>Total spent</th></tr></thead>
+                <tbody id="topCustomersBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
