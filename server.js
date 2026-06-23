@@ -133,6 +133,87 @@ async function initializeDatabase() {
       await run('INSERT INTO customers (name, phone, address, customer_type) VALUES (?, ?, ?, ?)', item);
     }
   }
+
+  const existingSale = await get('SELECT id FROM sales LIMIT 1');
+  if (!existingSale) {
+    const products = await all('SELECT id, sku, stock FROM products');
+    const customers = await all('SELECT id FROM customers');
+    const productBySku = Object.fromEntries(products.map((product) => [product.sku, product]));
+
+    const initialStockDate = '2026-06-01';
+    for (const product of products) {
+      await run(
+        'INSERT INTO stock_movements (product_id, movement_type, quantity, reference, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [product.id, 'Stock In', product.stock, 'Initial stock', 'Seeded beginning inventory', initialStockDate]
+      );
+    }
+
+    const sampleSales = [
+      {
+        customerId: customers[0].id,
+        date: '2026-06-15',
+        status: 'Completed',
+        items: [
+          { sku: 'TBK-ORANGE', qty: 15, price: 34.5 },
+          { sku: 'CRB-STICK', qty: 12, price: 9.5 }
+        ]
+      },
+      {
+        customerId: customers[1].id,
+        date: '2026-06-17',
+        status: 'Delivered',
+        items: [
+          { sku: 'OCT-SLICE', qty: 8, price: 22.0 }
+        ]
+      },
+      {
+        customerId: customers[2].id,
+        date: '2026-06-18',
+        status: 'Pending',
+        items: [
+          { sku: 'EBI-FURAI', qty: 20, price: 18.0 }
+        ]
+      }
+    ];
+
+    for (const sale of sampleSales) {
+      const totalAmount = sale.items.reduce((sum, item) => sum + item.qty * item.price, 0);
+      const result = await run(
+        'INSERT INTO sales (customer_id, transaction_date, total_amount, status) VALUES (?, ?, ?, ?)',
+        [sale.customerId, sale.date, totalAmount, sale.status]
+      );
+      const saleId = result.lastID;
+      for (const item of sale.items) {
+        const product = productBySku[item.sku];
+        if (!product) continue;
+        await run(
+          'INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)',
+          [saleId, product.id, item.qty, item.price, item.qty * item.price]
+        );
+        await run('UPDATE products SET stock = stock - ? WHERE id = ?', [item.qty, product.id]);
+        await run(
+          'INSERT INTO stock_movements (product_id, movement_type, quantity, reference, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [product.id, 'Sale', item.qty, `Sale #${saleId}`, `Sale to customer`, sale.date]
+        );
+      }
+    }
+
+    const sampleMovements = [
+      { sku: 'TBK-BLACK', type: 'Stock In', qty: 20, notes: 'Restock from supplier', date: '2026-06-18' },
+      { sku: 'CRB-STICK', type: 'Stock Out', qty: 15, notes: 'Dispatch to partner', date: '2026-06-19' }
+    ];
+    for (const movement of sampleMovements) {
+      const product = productBySku[movement.sku];
+      if (!product) continue;
+      const newStock = movement.type === 'Stock In' ? product.stock + movement.qty : product.stock - movement.qty;
+      await run('UPDATE products SET stock = ? WHERE id = ?', [newStock, product.id]);
+      await run(
+        'INSERT INTO stock_movements (product_id, movement_type, quantity, reference, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [product.id, movement.type, movement.qty, movement.type, movement.notes, movement.date]
+      );
+      product.stock = newStock;
+    }
+  }
 }
 
 app.use(express.json());
